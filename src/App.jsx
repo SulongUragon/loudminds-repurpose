@@ -171,7 +171,7 @@ function OutputCard({format, content, loading, accounts, onAddToQueue}) {
   );
 }
 
-export default function App({onNavigate, onAddToQueue, accounts, fetchAccounts}) {
+export default function App({onNavigate, onAddToQueue, accounts, fetchAccounts, user, onLogout}) {
   const [apiKey,setApiKey]=useState(()=>localStorage.getItem("lmc_repurpose_key")||"");
   const [showKey,setShowKey]=useState(false);
   const [keyDraft,setKeyDraft]=useState("");
@@ -254,6 +254,13 @@ export default function App({onNavigate, onAddToQueue, accounts, fetchAccounts})
           <span style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:"#252525",letterSpacing:3,marginLeft:6}}>v2.0</span>
         </div>
         <div style={{display:"flex",gap:8,alignItems:"center"}}>
+          {user&&(
+            <div style={{display:"flex",alignItems:"center",gap:8}}>
+              {user.picture&&<img src={user.picture} alt={user.name} style={{width:28,height:28,borderRadius:"50%",border:"1px solid #1e1e1e"}}/>}
+              <span style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:"#333",letterSpacing:1}}>{user.name?.split(" ")[0].toUpperCase()}</span>
+              <button onClick={onLogout} style={{background:"none",border:"1px solid #1a1a1a",color:"#333",padding:"4px 10px",fontFamily:"'DM Mono',monospace",fontSize:9,cursor:"pointer",letterSpacing:1}}>OUT</button>
+            </div>
+          )}
           <button onClick={()=>onNavigate("dashboard")}
             style={{background:"none",border:"1px solid #1a1a1a",color:"#444",padding:"6px 16px",fontFamily:"'DM Mono',monospace",fontSize:10,cursor:"pointer",letterSpacing:2,transition:"all 0.2s",position:"relative"}}
             onMouseEnter={e=>{e.currentTarget.style.borderColor="#c8ff00";e.currentTarget.style.color="#c8ff00"}}
