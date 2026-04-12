@@ -211,7 +211,7 @@ export default function App({onNavigate, onAddToQueue, accounts, fetchAccounts})
     setTimeout(()=>outputRef.current?.scrollIntoView({behavior:"smooth",block:"start"}),150);
     await Promise.all(selectedFormats.map(async format=>{
       try{
-        const res=await fetch(`/generate`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1500,messages:[{role:"user",content:buildPrompt(format)}],apiKey})});
+        const res=await fetch(`${WORKER_URL}/generate`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1500,messages:[{role:"user",content:buildPrompt(format)}],apiKey})});
         const data=await res.json();
         if(data.error)throw new Error(data.error.message);
         setOutputs(prev=>({...prev,[format]:data.content?.[0]?.text||"No content returned."}));
