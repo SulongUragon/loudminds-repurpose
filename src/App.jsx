@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import QuoteCard from "./QuoteCard.jsx";
 
 const WORKER_URL = import.meta.env.VITE_WORKER_URL || "https://lmc-repurpose-api.sulonguragon.workers.dev";
 
@@ -381,6 +382,14 @@ export default function App({onNavigate, onAddToQueue, accounts, fetchAccounts})
         )}
       </main>
 
+            {hasGenerated && allDone && (
+          <div style={{marginTop:48}}>
+            <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:11,letterSpacing:4,color:"#333",marginBottom:24}}>05 — QUOTE CARD</div>
+            <QuoteCard prefillText={outputs[selectedFormats[0]]?.split('
+').find(l=>l.trim()&&!l.startsWith('**')&&l.length>20)||''} />
+          </div>
+        )}
+      </main>
       <footer style={{borderTop:"1px solid #0a0a0a",padding:"20px 48px",display:"flex",justifyContent:"space-between",color:"#1a1a1a",fontSize:10,letterSpacing:2}}>
         <span>LOUDMINDSCLUB</span>
         <span>REPURPOSE ENGINE v2.0 — FLOW A+B+C</span>
