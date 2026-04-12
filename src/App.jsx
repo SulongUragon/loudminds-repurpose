@@ -1,6 +1,6 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect } from "react";
 
-const WORKER_URL = import.meta.env.VITE_WORKER_URL || "https://lmc-repurpose-api.YOUR_SUBDOMAIN.workers.dev";
+const WORKER_URL = import.meta.env.VITE_WORKER_URL || "https://lmc-repurpose-api.sulonguragon.workers.dev";
 
 const FORMATS = [
   { id:"tiktok_script",     label:"TikTok Script",     icon:"▶", platform:"TikTok",       publishTo:null },
@@ -63,10 +63,7 @@ function CopyBtn({text}) {
 }
 
 function PlatformBar({accounts,onConnect,onDisconnect,loading}) {
-  const platforms=[
-    {id:"twitter", label:"Twitter / X", icon:"𝕏"},
-    {id:"linkedin",label:"LinkedIn",    icon:"in"},
-  ];
+  const platforms=[{id:"twitter",label:"Twitter / X",icon:"𝕏"},{id:"linkedin",label:"LinkedIn",icon:"in"}];
   return (
     <div style={{background:"#080808",borderBottom:"1px solid #0f0f0f",padding:"11px 48px",display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
       <span style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:"#252525",letterSpacing:2,marginRight:6}}>PLATFORMS</span>
@@ -86,10 +83,11 @@ function PlatformBar({accounts,onConnect,onDisconnect,loading}) {
   );
 }
 
-function OutputCard({format,content,loading,accounts}) {
+function OutputCard({format, content, loading, accounts, onAddToQueue}) {
   const fmt=FORMATS.find(f=>f.id===format);
   const [publishing,setPublishing]=useState(false);
   const [result,setResult]=useState(null);
+  const [queued,setQueued]=useState(false);
   const canPublish=fmt?.publishTo&&(accounts[fmt.publishTo]?.length>0);
 
   const publish=async()=>{
@@ -103,6 +101,11 @@ function OutputCard({format,content,loading,accounts}) {
       setResult(data.success?{ok:true,url:data.result?.url}:{ok:false,error:data.error});
     } catch(e){setResult({ok:false,error:e.message});}
     finally{setPublishing(false);}
+  };
+
+  const addToQueue=()=>{
+    onAddToQueue({format,content,platform:fmt?.publishTo||null});
+    setQueued(true);
   };
 
   return (
@@ -126,6 +129,8 @@ function OutputCard({format,content,loading,accounts}) {
           </pre>
           <div style={{marginTop:16,display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
             <CopyBtn text={content}/>
+
+            {/* Publish now */}
             {fmt?.publishTo&&(canPublish?(
               <button onClick={publish} disabled={publishing}
                 style={{background:publishing?"none":"#0c120c",border:`1px solid ${publishing?"#1a1a1a":"#1e3a1e"}`,color:publishing?"#444":"#c8ff00",padding:"4px 16px",fontFamily:"'DM Mono',monospace",fontSize:10,cursor:publishing?"not-allowed":"pointer",letterSpacing:1.5,display:"flex",alignItems:"center",gap:6,transition:"all 0.2s"}}>
@@ -134,6 +139,14 @@ function OutputCard({format,content,loading,accounts}) {
             ):(
               <span style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:"#252525",letterSpacing:1}}>connect {fmt.publishTo} above</span>
             ))}
+
+            {/* Add to queue */}
+            <button onClick={addToQueue} disabled={queued}
+              style={{background:"none",border:`1px solid ${queued?"#1e3a1e":"#1a1a1a"}`,color:queued?"#c8ff00":"#444",padding:"4px 14px",fontFamily:"'DM Mono',monospace",fontSize:10,cursor:queued?"default":"pointer",letterSpacing:1.5,transition:"all 0.2s"}}>
+              {queued?"✓ IN QUEUE":"+ QUEUE"}
+            </button>
+
+            {/* TikTok manual */}
             {fmt?.id==="tiktok_script"&&(
               <button onClick={()=>{navigator.clipboard.writeText(content);window.open("https://www.tiktok.com/creator-center/upload","_blank");}}
                 style={{background:"none",border:"1px solid #1a1a1a",color:"#444",padding:"4px 16px",fontFamily:"'DM Mono',monospace",fontSize:10,cursor:"pointer",letterSpacing:1.5}}>
@@ -141,6 +154,7 @@ function OutputCard({format,content,loading,accounts}) {
               </button>
             )}
           </div>
+
           {result&&(
             <div style={{marginTop:10,fontFamily:"'DM Mono',monospace",fontSize:10,letterSpacing:1}}>
               {result.ok?(
@@ -156,7 +170,7 @@ function OutputCard({format,content,loading,accounts}) {
   );
 }
 
-export default function App() {
+export default function App({onNavigate, onAddToQueue, accounts, fetchAccounts}) {
   const [apiKey,setApiKey]=useState(()=>localStorage.getItem("lmc_repurpose_key")||"");
   const [showKey,setShowKey]=useState(false);
   const [keyDraft,setKeyDraft]=useState("");
@@ -167,19 +181,9 @@ export default function App() {
   const [outputs,setOutputs]=useState({});
   const [loadingFormats,setLoadingFormats]=useState({});
   const [hasGenerated,setHasGenerated]=useState(false);
-  const [accounts,setAccounts]=useState({twitter:[],linkedin:[]});
   const [loadingAccounts,setLoadingAccounts]=useState(false);
   const outputRef=useRef(null);
   const isGenerating=Object.values(loadingFormats).some(Boolean);
-
-  const fetchAccounts=useCallback(async()=>{
-    setLoadingAccounts(true);
-    try{const res=await fetch(`${WORKER_URL}/accounts`);const data=await res.json();setAccounts(data.accounts||{twitter:[],linkedin:[]});}
-    catch(e){console.error(e);}
-    finally{setLoadingAccounts(false);}
-  },[]);
-
-  useEffect(()=>{fetchAccounts();},[fetchAccounts]);
 
   useEffect(()=>{
     const params=new URLSearchParams(window.location.search);
@@ -218,6 +222,9 @@ export default function App() {
 
   const allDone=hasGenerated&&selectedFormats.every(f=>outputs[f]&&!loadingFormats[f]);
 
+  // Queue count from localStorage
+  const queueCount = JSON.parse(localStorage.getItem("lmc_queue")||"[]").length;
+
   return (
     <div style={{minHeight:"100vh",background:"#050505",color:"#fff",fontFamily:"'DM Mono',monospace",position:"relative"}}>
       <GrainOverlay/>
@@ -245,10 +252,18 @@ export default function App() {
           <span style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:24,letterSpacing:5,color:"#c8ff00"}}>REPURPOSE</span>
           <span style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:"#252525",letterSpacing:3,marginLeft:6}}>v2.0</span>
         </div>
-        <button onClick={()=>{setShowKey(v=>!v);setKeyDraft(apiKey);}}
-          style={{background:"none",border:`1px solid ${apiKey?"#1e2e0e":"#1a1a1a"}`,color:apiKey?"#c8ff00":"#444",padding:"6px 16px",fontFamily:"'DM Mono',monospace",fontSize:10,cursor:"pointer",letterSpacing:2}}>
-          {apiKey?"● API CONNECTED":"○ CONNECT API KEY"}
-        </button>
+        <div style={{display:"flex",gap:8,alignItems:"center"}}>
+          <button onClick={()=>onNavigate("dashboard")}
+            style={{background:"none",border:"1px solid #1a1a1a",color:"#444",padding:"6px 16px",fontFamily:"'DM Mono',monospace",fontSize:10,cursor:"pointer",letterSpacing:2,transition:"all 0.2s",position:"relative"}}
+            onMouseEnter={e=>{e.currentTarget.style.borderColor="#c8ff00";e.currentTarget.style.color="#c8ff00"}}
+            onMouseLeave={e=>{e.currentTarget.style.borderColor="#1a1a1a";e.currentTarget.style.color="#444"}}>
+            DASHBOARD {queueCount>0&&<span style={{color:"#c8ff00",marginLeft:4}}>{queueCount}</span>}
+          </button>
+          <button onClick={()=>{setShowKey(v=>!v);setKeyDraft(apiKey);}}
+            style={{background:"none",border:`1px solid ${apiKey?"#1e2e0e":"#1a1a1a"}`,color:apiKey?"#c8ff00":"#444",padding:"6px 16px",fontFamily:"'DM Mono',monospace",fontSize:10,cursor:"pointer",letterSpacing:2}}>
+            {apiKey?"● API":"○ API KEY"}
+          </button>
+        </div>
       </header>
 
       {/* API KEY */}
@@ -272,7 +287,7 @@ export default function App() {
             ONE IDEA.<br/><span style={{color:"#c8ff00"}}>EVERY PLATFORM.</span>
           </h1>
           <p style={{fontFamily:"'DM Mono',monospace",fontSize:12,color:"#252525",letterSpacing:1}}>
-            Generate + publish in one flow. Connect Twitter and LinkedIn above.
+            Generate + publish + queue in one flow.
           </p>
         </div>
 
@@ -291,7 +306,7 @@ export default function App() {
                 ))}
               </div>
               <textarea value={inputContent} onChange={e=>setInputContent(e.target.value)}
-                placeholder={inputType==="text"?"Paste your raw idea or content here...":inputType==="url"?"Paste the article text here...":inputType==="transcript"?"Paste the video transcript here...":"Paste the tweet or post here..."}
+                placeholder="Paste your idea, transcript, article, or post here..."
                 style={{width:"100%",minHeight:160,background:"#080808",border:"1px solid #141414",color:"#ccc",padding:"16px",fontFamily:"'DM Mono',monospace",fontSize:12,lineHeight:1.8,resize:"vertical"}}/>
               <div style={{display:"flex",justifyContent:"flex-end",marginTop:6,color:"#1e1e1e",fontSize:10,letterSpacing:1}}>{inputContent.length} CHARS</div>
             </section>
@@ -303,27 +318,26 @@ export default function App() {
               </label>
               <div style={{display:"flex",flexWrap:"wrap",gap:8}}>
                 {FORMATS.map(f=>(
-                  <button key={f.id} title={f.platform} className={`fc${selectedFormats.includes(f.id)?" on":""}`} onClick={()=>toggleFormat(f.id)}
+                  <button key={f.id} className={`fc${selectedFormats.includes(f.id)?" on":""}`} onClick={()=>toggleFormat(f.id)}
                     style={{background:selectedFormats.includes(f.id)?"#c8ff00":"none",border:`1px solid ${selectedFormats.includes(f.id)?"#c8ff00":"#171717"}`,color:selectedFormats.includes(f.id)?"#000":"#444",padding:"8px 16px",fontFamily:"'DM Mono',monospace",fontSize:11,cursor:"pointer",letterSpacing:1,position:"relative"}}>
                     {f.icon} {f.label}
                     {f.publishTo&&<span style={{position:"absolute",top:3,right:3,width:4,height:4,borderRadius:"50%",background:accounts[f.publishTo]?.length>0?"#c8ff00":"#222"}}/>}
                   </button>
                 ))}
               </div>
-              <div style={{marginTop:10,color:"#1a1a1a",fontSize:10,letterSpacing:1}}>GREEN DOT = PLATFORM CONNECTED · READY TO PUBLISH</div>
             </section>
 
             {/* Generate */}
             <div style={{display:"flex",alignItems:"center",gap:20}}>
               <button className="gb" onClick={generate} disabled={!inputContent.trim()||!selectedFormats.length||isGenerating}
                 style={{background:"#c8ff00",border:"none",color:"#000",padding:"16px 52px",fontFamily:"'Bebas Neue',sans-serif",fontSize:20,letterSpacing:4,cursor:"pointer"}}>
-                {isGenerating?`GENERATING ${selectedFormats.length} FORMATS...`:`REPURPOSE → ${selectedFormats.length} FORMAT${selectedFormats.length!==1?"S":""}`}
+                {isGenerating?`GENERATING...`:`REPURPOSE → ${selectedFormats.length} FORMAT${selectedFormats.length!==1?"S":""}`}
               </button>
-              {allDone&&<span style={{color:"#c8ff00",fontSize:11,letterSpacing:2,animation:"fadeUp 0.3s ease"}}>✓ COMPLETE</span>}
+              {allDone&&<span style={{color:"#c8ff00",fontSize:11,letterSpacing:2,animation:"fadeUp 0.3s ease"}}>✓ DONE</span>}
             </div>
           </div>
 
-          {/* Tone + quick packs */}
+          {/* Tone + packs */}
           <div style={{position:"sticky",top:80}}>
             <label style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:11,letterSpacing:4,color:"#333",display:"block",marginBottom:14}}>02 — TONE</label>
             <div style={{display:"flex",flexDirection:"column",gap:6}}>
@@ -343,8 +357,8 @@ export default function App() {
               ].map(pack=>(
                 <button key={pack.label} onClick={()=>setSelectedFormats(pack.formats)}
                   style={{display:"block",width:"100%",background:"none",border:"1px solid #141414",color:"#444",padding:"8px 14px",textAlign:"left",fontFamily:"'DM Mono',monospace",fontSize:10,cursor:"pointer",letterSpacing:1,marginBottom:6,transition:"all 0.15s"}}
-                  onMouseEnter={e=>{e.target.style.borderColor="#2a2a2a";e.target.style.color="#888";}}
-                  onMouseLeave={e=>{e.target.style.borderColor="#141414";e.target.style.color="#444";}}>
+                  onMouseEnter={e=>{e.target.style.borderColor="#2a2a2a";e.target.style.color="#888"}}
+                  onMouseLeave={e=>{e.target.style.borderColor="#141414";e.target.style.color="#444"}}>
                   {pack.label} ({pack.formats.length})
                 </button>
               ))}
@@ -360,7 +374,7 @@ export default function App() {
             </div>
             <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill, minmax(500px,1fr))",gap:16}}>
               {selectedFormats.map(format=>(
-                <OutputCard key={format} format={format} content={outputs[format]||""} loading={!!loadingFormats[format]} accounts={accounts}/>
+                <OutputCard key={format} format={format} content={outputs[format]||""} loading={!!loadingFormats[format]} accounts={accounts} onAddToQueue={onAddToQueue}/>
               ))}
             </div>
           </div>
@@ -369,7 +383,7 @@ export default function App() {
 
       <footer style={{borderTop:"1px solid #0a0a0a",padding:"20px 48px",display:"flex",justifyContent:"space-between",color:"#1a1a1a",fontSize:10,letterSpacing:2}}>
         <span>LOUDMINDSCLUB</span>
-        <span>REPURPOSE ENGINE v2.0 — FLOW A + B</span>
+        <span>REPURPOSE ENGINE v2.0 — FLOW A+B+C</span>
       </footer>
     </div>
   );
