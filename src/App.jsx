@@ -392,8 +392,7 @@ export default function App({onNavigate, onAddToQueue, accounts, fetchAccounts, 
             {hasGenerated && allDone && (
           <div style={{marginTop:48}}>
             <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:11,letterSpacing:4,color:"#333",marginBottom:24}}>05 — QUOTE CARD</div>
-            <QuoteCard prefillText={outputs[selectedFormats[0]]?.split('
-').find(l=>l.trim()&&!l.startsWith('**')&&l.length>20)||''} />
+            <QuoteCard prefillText={outputs[selectedFormats[0]] ? outputs[selectedFormats[0]].split(String.fromCharCode(10)).find(l=>l.trim()&&!l.startsWith("**")&&l.length>20)||"" : ""} />
           </div>
         )}
       </main>
