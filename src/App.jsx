@@ -248,10 +248,24 @@ export default function App({onNavigate, onAddToQueue, accounts, fetchAccounts, 
 
       {/* HEADER */}
       <header style={{borderBottom:"1px solid #0f0f0f",padding:"18px 48px",display:"flex",alignItems:"center",justifyContent:"space-between",position:"sticky",top:0,background:"rgba(5,5,5,0.95)",backdropFilter:"blur(12px)",zIndex:100}}>
-        <div style={{display:"flex",alignItems:"baseline",gap:10}}>
-          <span style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:24,letterSpacing:5,color:"#fff"}}>LOUDMINDS</span>
-          <span style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:24,letterSpacing:5,color:"#c8ff00"}}>REPURPOSE</span>
-          <span style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:"#252525",letterSpacing:3,marginLeft:6}}>v2.0</span>
+        <div style={{display:"flex",alignItems:"center",gap:14}}>
+          <img
+            src="/logo.png"
+            alt="LoudMindsClub"
+            style={{
+              height:48,
+              width:48,
+              objectFit:"cover",
+              flexShrink:0,
+              maskImage:"radial-gradient(ellipse 75% 75% at center, black 45%, transparent 100%)",
+              WebkitMaskImage:"radial-gradient(ellipse 75% 75% at center, black 45%, transparent 100%)",
+            }}
+          />
+          <div style={{display:"flex",alignItems:"baseline",gap:10}}>
+            <span style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:24,letterSpacing:5,color:"#fff"}}>LOUDMINDS</span>
+            <span style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:24,letterSpacing:5,color:"#c8ff00"}}>REPURPOSE</span>
+            <span style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:"#252525",letterSpacing:3,marginLeft:6}}>v2.0</span>
+          </div>
         </div>
         <div style={{display:"flex",gap:8,alignItems:"center"}}>
           {user&&(
