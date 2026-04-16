@@ -268,6 +268,11 @@ export default function App({onNavigate, onAddToQueue, accounts, fetchAccounts, 
           </div>
         </div>
         <div style={{display:"flex",gap:8,alignItems:"center"}}>
+          <a href="https://loudminds.club" style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:"#252525",letterSpacing:2,textDecoration:"none",transition:"color 0.2s"}}
+            onMouseEnter={e=>e.currentTarget.style.color="#c8ff00"}
+            onMouseLeave={e=>e.currentTarget.style.color="#252525"}>
+            ← loudminds.club
+          </a>
           {user&&(
             <div style={{display:"flex",alignItems:"center",gap:8}}>
               {user.picture&&<img src={user.picture} alt={user.name} style={{width:28,height:28,borderRadius:"50%",border:"1px solid #1e1e1e"}}/>}
